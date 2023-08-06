@@ -2,7 +2,12 @@ package hrouter
 
 import "strings"
 
-type subRoutes map[string]*RouteNode
+// 共享数据
+type routeShare struct {
+	newMethodHandlersObjFunc NewMethodHandlersObjFunc
+}
+
+type routeMap map[string]*RouteNode
 
 // 路由节点
 type RouteNode struct {
@@ -15,14 +20,17 @@ type RouteNode struct {
 	// 所有 method 都调用的处理链，执行顺序高于 methodHandlers 的处理链
 	handlers HandlersChain
 
-	// 不同 method 对于的处理链
-	methodHandlers MethodHandlersChain
+	// 不同 method 的处理链管理对象
+	methodHandlersObj IMethodHandlersManage
 
 	// 下级路由 map，不含下级匹配路由
-	subRoutes subRoutes
+	subRoutes routeMap
 
 	// 下级匹配路由
 	matchRoute *RouteNode
+
+	// 共享数据
+	share *routeShare
 }
 
 // RouteNode 添加 handlers
@@ -43,11 +51,11 @@ func (r *RouteNode) RemoUse(handlers ...HandlerFunc) *RouteNode {
 }
 
 func (r *RouteNode) addMethodHandlers(methodHandlers ...IMethodHandlers) *RouteNode {
-	if r.methodHandlers == nil {
-		r.methodHandlers = make(MethodHandlersChain)
+	if r.methodHandlersObj == nil {
+		r.methodHandlersObj = r.share.newMethodHandlersObjFunc()
 	}
 	for _, mh := range methodHandlers {
-		r.methodHandlers[mh.GetMethod()] = mh.GetHandlers()
+		r.methodHandlersObj.SetMethodHandlers(mh.GetMethod(), mh.GetHandlers())
 	}
 
 	return r
@@ -67,8 +75,8 @@ func (r *RouteNode) AddRoute(relativePath string, methodHandlers ...IMethodHandl
 		relativePath = relativePath[:len(relativePath)-1]
 	}
 
-	paths := strings.Split(relativePath, "/")
 	root := r
+	paths := strings.Split(relativePath, "/")
 	for _, path := range paths {
 		isMatch := false
 		if path[0] == ':' {
@@ -79,19 +87,18 @@ func (r *RouteNode) AddRoute(relativePath string, methodHandlers ...IMethodHandl
 		var node *RouteNode
 		if isMatch {
 			if root.matchRoute == nil {
-				node = &RouteNode{
+				root.matchRoute = &RouteNode{
 					path:    path,
 					isMatch: isMatch,
+					share:   root.share,
 				}
-				root.matchRoute = node
-			} else {
-				node = root.matchRoute
 			}
+			node = root.matchRoute
 		} else {
 			var ok bool
 			if root.subRoutes == nil {
-				root.subRoutes = make(subRoutes)
 				ok = false
+				root.subRoutes = make(routeMap)
 			} else {
 				node, ok = root.subRoutes[path]
 			}
@@ -99,11 +106,12 @@ func (r *RouteNode) AddRoute(relativePath string, methodHandlers ...IMethodHandl
 				node = &RouteNode{
 					path:    path,
 					isMatch: isMatch,
+					share:   root.share,
 				}
 				root.subRoutes[path] = node
 			}
 		}
-		// 如果root 有 handlers 且 node 没有 handlers 时 把 root 的 handlers copy 到 node
+		// 如果root 有 handlers 但 node 没有 handlers 时，把 root 的 handlers copy 到 node
 		if root.handlers != nil && node.handlers == nil {
 			node.handlers = root.handlers
 		}

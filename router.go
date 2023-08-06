@@ -10,8 +10,21 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		tree: new(RouteNode),
+		tree: newTree(),
 	}
+}
+
+func newTree() *RouteNode {
+	return &RouteNode{
+		share: new(routeShare),
+	}
+}
+
+func (r *Router) SetNewMethodHandlersObjFunc(hm NewMethodHandlersObjFunc) {
+	if r.tree == nil {
+		r.tree = newTree()
+	}
+	r.tree.share.newMethodHandlersObjFunc = hm
 }
 
 // 添加路由
@@ -19,12 +32,11 @@ func (r *Router) AddRoute(absolutePath string, methodHandlers ...IMethodHandlers
 	if absolutePath == "" || absolutePath[0] != '/' {
 		return nil
 	}
+	if r.tree == nil {
+		r.tree = newTree()
+	}
 	root := r.tree
 	if absolutePath == "/" {
-		if root == nil {
-			root = new(RouteNode)
-			r.tree = root
-		}
 		root.addMethodHandlers(methodHandlers...)
 		return root
 	}
@@ -38,8 +50,8 @@ func (r *Router) GetRouteHandlers(absolutePath string, method string) (HandlersC
 	if err != nil {
 		return nil, err
 	}
-	mfs, ok := node.methodHandlers[method]
-	if !ok {
+	mfs, ok := node.methodHandlersObj.GetMethodHandlers(method)
+	if !ok || len(mfs) < 1 {
 		return node.handlers, ErrMethodHandlersNotFount
 	}
 	if len(node.handlers) > 0 {
@@ -62,8 +74,8 @@ func (r *Router) GetRouteNode(absolutePath string) (*RouteNode, error) {
 		absolutePath = absolutePath[:len(absolutePath)-1]
 	}
 
-	paths := strings.Split(absolutePath[1:], "/")
 	root := r.tree
+	paths := strings.Split(absolutePath[1:], "/")
 	for _, path := range paths {
 		if path[0] == ':' {
 			path = path[1:]
@@ -71,11 +83,11 @@ func (r *Router) GetRouteNode(absolutePath string) (*RouteNode, error) {
 
 		node, ok := root.subRoutes[path]
 		if !ok {
-			if root.matchRoute != nil && root.matchRoute.isMatch {
-				node = root.matchRoute
-			} else {
+			// 没有匹配下级路由
+			if root.matchRoute == nil {
 				return nil, ErrRouteNotFount
 			}
+			node = root.matchRoute
 		}
 		root = node
 	}

@@ -10,3 +10,10 @@ type IMethodHandlers interface {
 	GetMethod() string
 	GetHandlers() HandlersChain
 }
+
+type IMethodHandlersManage interface {
+	SetMethodHandlers(method string, handlers HandlersChain) error
+	GetMethodHandlers(method string) (HandlersChain, bool)
+}
+
+type NewMethodHandlersObjFunc func() IMethodHandlersManage

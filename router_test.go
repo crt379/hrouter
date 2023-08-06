@@ -6,7 +6,7 @@ import (
 )
 
 func Test1(t *testing.T) {
-	router := NewRouter()
+	router := NewHttpRouter()
 
 	router.AddRoute("/", Post(func() {
 		fmt.Println("POST /")
@@ -55,7 +55,7 @@ func Test1(t *testing.T) {
 }
 
 func Test2(t *testing.T) {
-	router := NewRouter()
+	router := NewHttpRouter()
 	r := router.AddRoute("/").Use(func() {
 		fmt.Println("auth")
 	})
@@ -97,7 +97,7 @@ func Test2(t *testing.T) {
 }
 
 func BenchmarkName(b *testing.B) {
-	router := NewRouter()
+	router := NewHttpRouter()
 	routes := []string{
 		"/abcd/defg/fghj/lidj/:id/name",
 		"/1234/defg/fghj/lidj/:id/name",
