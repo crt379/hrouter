@@ -42,7 +42,6 @@ func MethodStringToFlag(method string) int {
 }
 
 type HttpMethod struct {
-	flag     int
 	method   string
 	handlers HandlersChain
 }
@@ -51,17 +50,12 @@ func (h *HttpMethod) GetMethod() string {
 	return h.method
 }
 
-func (h *HttpMethod) GetMethodFlag() int {
-	return h.flag
-}
-
 func (h *HttpMethod) GetHandlers() HandlersChain {
 	return h.handlers
 }
 
 func newHttpMethod(method string, f ...HandlerFunc) *HttpMethod {
 	return &HttpMethod{
-		flag:     MethodStringToNum(method),
 		method:   method,
 		handlers: f,
 	}

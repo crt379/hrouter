@@ -8,11 +8,11 @@ import (
 func Test1(t *testing.T) {
 	router := NewHttpRouter()
 
-	router.AddRoute("/", Post(func() {
-		fmt.Println("POST /")
-	}))
 	router.AddRoute("/xxx", Post(func() {
 		fmt.Println("POST /xxx")
+	}))
+	router.AddRoute("/", Post(func() {
+		fmt.Println("POST /")
 	}))
 	router.AddRoute("/xxx/:id", Post(func() {
 		fmt.Println("POST /xxx/:id")

@@ -33,6 +33,17 @@ type RouteNode struct {
 	share *routeShare
 }
 
+func (r *RouteNode) addMethodHandlers(methodHandlers ...IMethodHandlers) *RouteNode {
+	if r.methodHandlersObj == nil {
+		r.methodHandlersObj = r.share.newMethodHandlersObjFunc()
+	}
+	for _, mh := range methodHandlers {
+		r.methodHandlersObj.SetMethodHandlers(mh.GetMethod(), mh.GetHandlers())
+	}
+
+	return r
+}
+
 // RouteNode 添加 handlers
 func (r *RouteNode) Use(handlers ...HandlerFunc) *RouteNode {
 	if handlers == nil {
@@ -46,17 +57,6 @@ func (r *RouteNode) Use(handlers ...HandlerFunc) *RouteNode {
 // RouteNode 去除 handlers
 func (r *RouteNode) RemoUse(handlers ...HandlerFunc) *RouteNode {
 	r.handlers = nil
-
-	return r
-}
-
-func (r *RouteNode) addMethodHandlers(methodHandlers ...IMethodHandlers) *RouteNode {
-	if r.methodHandlersObj == nil {
-		r.methodHandlersObj = r.share.newMethodHandlersObjFunc()
-	}
-	for _, mh := range methodHandlers {
-		r.methodHandlersObj.SetMethodHandlers(mh.GetMethod(), mh.GetHandlers())
-	}
 
 	return r
 }
